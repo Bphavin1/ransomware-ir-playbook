@@ -40,6 +40,10 @@ Structured post-incident template with incident timeline fields, root cause anal
 
 ---
 
+## Screenshot of Actual Output
+
+![Ransomware IR Playbook](screenshots/1.png)
+
 ## Output
 
 Single self-contained HTML file (`ransomware_ir_playbook.html`) with:
