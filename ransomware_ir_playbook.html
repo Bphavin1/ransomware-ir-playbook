@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ransomware Incident Response Playbook</title>
+  <style>
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #21262d;
+      --text:      #c9d1d9;
+      --muted:     #8b949e;
+      --code-bg:   #1c2128;
+
+      --prepare:   #58a6ff;
+      --detect:    #e3b341;
+      --contain:   #f0883e;
+      --eradicate: #f85149;
+      --recover:   #3fb950;
+      --postir:    #bc8cff;
+
+      --tag-bg:    rgba(88,166,255,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--prepare); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── COVER ─────────────────────────────────────────── */
+    .cover {
+      background: linear-gradient(160deg, #0d1117 0%, #161b22 60%, #1a1f2e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 72px 48px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::before {
+      content: "";
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 480px; height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(248,81,73,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cover-label {
+      display: inline-block;
+      background: rgba(248,81,73,0.15);
+      color: var(--eradicate);
+      border: 1px solid rgba(248,81,73,0.35);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      padding: 3px 10px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .cover h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .cover h1 span { color: var(--eradicate); }
+    .cover .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 40px;
+    }
+    .cover-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+    }
+    .cover-meta-item label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .cover-meta-item span {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── LAYOUT ────────────────────────────────────────── */
+    .wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 32px;
+    }
+
+    /* ── TOC ───────────────────────────────────────────── */
+    .toc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px 32px;
+      margin-bottom: 56px;
+    }
+    .toc h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .toc ol {
+      list-style: none;
+      counter-reset: toc;
+    }
+    .toc ol li {
+      counter-increment: toc;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toc ol li:last-child { border-bottom: none; }
+    .toc ol li::before {
+      content: counter(toc, decimal-leading-zero);
+      font-size: 11px;
+      color: var(--muted);
+      min-width: 24px;
+    }
+    .toc ol li a {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .phase-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      margin-bottom: 1px;
+    }
+
+    /* ── PHASE SECTIONS ────────────────────────────────── */
+    .phase {
+      margin-bottom: 64px;
+      scroll-margin-top: 24px;
+    }
+    .phase-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .phase-badge {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 4px;
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .phase-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .nist-ref {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    /* Colors per phase */
+    .phase-prepare  .phase-badge { color: var(--prepare);   border-color: var(--prepare);   background: rgba(88,166,255,0.1); }
+    .phase-detect   .phase-badge { color: var(--detect);    border-color: var(--detect);    background: rgba(227,179,65,0.1); }
+    .phase-contain  .phase-badge { color: var(--contain);   border-color: var(--contain);   background: rgba(240,136,62,0.1); }
+    .phase-eradicate .phase-badge{ color: var(--eradicate); border-color: var(--eradicate); background: rgba(248,81,73,0.1); }
+    .phase-recover  .phase-badge { color: var(--recover);   border-color: var(--recover);   background: rgba(63,185,80,0.1); }
+    .phase-postir   .phase-badge { color: var(--postir);    border-color: var(--postir);    background: rgba(188,140,255,0.1); }
+
+    .phase-prepare  .phase-title { color: var(--prepare); }
+    .phase-detect   .phase-title { color: var(--detect); }
+    .phase-contain  .phase-title { color: var(--contain); }
+    .phase-eradicate .phase-title { color: var(--eradicate); }
+    .phase-recover  .phase-title { color: var(--recover); }
+    .phase-postir   .phase-title { color: var(--postir); }
+
+    /* ── CARDS ─────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 12px;
+      color: var(--muted);
+    }
+    .card ul {
+      list-style: none;
+      padding: 0;
+    }
+    .card ul li {
+      padding: 5px 0 5px 18px;
+      position: relative;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .card ul li::before {
+      content: ">";
+      position: absolute;
+      left: 0;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    /* ── CHECKLIST ─────────────────────────────────────── */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text);
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li .chk {
+      width: 16px; height: 16px;
+      border: 1.5px solid var(--muted);
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    /* ── CODE BLOCKS ───────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--contain);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin: 12px 0;
+      overflow-x: auto;
+    }
+    .code-block.detect  { border-left-color: var(--detect); }
+    .code-block.eradicate{ border-left-color: var(--eradicate); }
+    .code-block.recover { border-left-color: var(--recover); }
+    .code-block pre {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      color: #e6edf3;
+      white-space: pre;
+      line-height: 1.6;
+    }
+    .code-block .comment { color: #6e7681; }
+    .code-block .cmd     { color: #79c0ff; }
+    .code-block .flag    { color: #ffab70; }
+    .code-block .path    { color: #a5d6ff; }
+    .code-block .string  { color: #a5d6ff; }
+    .code-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    /* ── WAZUH ALERT TABLE ─────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin: 12px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr {
+      background: #1c2128;
+    }
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      font-size: 11px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td {
+      padding: 9px 14px;
+      vertical-align: top;
+      color: var(--text);
+    }
+    .rule-id {
+      font-family: monospace;
+      color: var(--detect);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .sev-critical { color: var(--eradicate); font-weight: 700; }
+    .sev-high     { color: var(--contain);   font-weight: 600; }
+    .sev-medium   { color: var(--detect);    font-weight: 600; }
+
+    /* ── MITRE TABLE ───────────────────────────────────── */
+    .technique-id {
+      font-family: monospace;
+      color: var(--postir);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── CALLOUT BOXES ─────────────────────────────────── */
+    .callout {
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .callout.warning {
+      background: rgba(227,179,65,0.1);
+      border: 1px solid rgba(227,179,65,0.25);
+      color: #e3b341;
+    }
+    .callout.critical {
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.25);
+      color: var(--eradicate);
+    }
+    .callout.info {
+      background: rgba(88,166,255,0.08);
+      border: 1px solid rgba(88,166,255,0.2);
+      color: var(--prepare);
+    }
+    .callout.success {
+      background: rgba(63,185,80,0.08);
+      border: 1px solid rgba(63,185,80,0.2);
+      color: var(--recover);
+    }
+
+    /* ── LESSONS LEARNED FORM ──────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-field label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .form-field .field-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-style: italic;
+      min-height: 36px;
+    }
+    .form-field.full { grid-column: 1 / -1; }
+    .form-field .field-box.tall { min-height: 80px; }
+
+    /* ── SECTION HEADER ────────────────────────────────── */
+    .section-header {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin: 24px 0 14px;
+    }
+
+    /* ── FOOTER ────────────────────────────────────────── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 24px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    /* ── GRID HELPERS ──────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── SCOPE BADGE ROW ───────────────────────────────── */
+    .scope-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .scope-badge {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      background: var(--tag-bg);
+      color: var(--prepare);
+      border: 1px solid rgba(88,166,255,0.2);
+    }
+
+    /* ── TIMELINE ──────────────────────────────────────── */
+    .timeline { position: relative; padding-left: 28px; }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 7px; top: 8px; bottom: 8px;
+      width: 2px;
+      background: var(--border);
+    }
+    .tl-item {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .tl-item::before {
+      content: "";
+      position: absolute;
+      left: -23px; top: 7px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+    }
+    .tl-item.active::before { border-color: var(--detect); background: var(--detect); }
+    .tl-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .tl-text { font-size: 14px; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════ COVER -->
+<div class="cover">
+  <div class="cover-label">TLP:WHITE — Unrestricted Distribution</div>
+  <h1><span>Ransomware</span> Incident Response Playbook</h1>
+  <p class="subtitle">Based on NIST SP 800-61r2 | MITRE ATT&CK Integration | Wazuh SIEM Detection</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <label>Framework</label>
+      <span>NIST SP 800-61 Rev. 2</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Version</label>
+      <span>1.0</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Classification</label>
+      <span>CONFIDENTIAL</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Created</label>
+      <span>May 2026</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Author</label>
+      <span>Brian Pascal</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Scope</label>
+      <span>Enterprise Ransomware Incidents</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <!-- ════════════════════════════ TABLE OF CONTENTS -->
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><span class="phase-dot" style="background:var(--prepare)"></span><a href="#phase1">Phase 1 — Preparation</a></li>
+      <li><span class="phase-dot" style="background:var(--detect)"></span><a href="#phase2">Phase 2 — Detection and Analysis</a></li>
+      <li><span class="phase-dot" style="background:var(--contain)"></span><a href="#phase3">Phase 3 — Containment</a></li>
+      <li><span class="phase-dot" style="background:var(--eradicate)"></span><a href="#phase4">Phase 4 — Eradication</a></li>
+      <li><span class="phase-dot" style="background:var(--recover)"></span><a href="#phase5">Phase 5 — Recovery</a></li>
+      <li><span class="phase-dot" style="background:var(--postir)"></span><a href="#phase6">Phase 6 — Post-Incident Activity</a></li>
+      <li><span class="phase-dot" style="background:var(--postir)"></span><a href="#mitre">MITRE ATT&amp;CK Reference</a></li>
+      <li><span class="phase-dot" style="background:var(--muted)"></span><a href="#lessons">Lessons Learned Template</a></li>
+    </ol>
+  </div>
+
+  <!-- ════════════════════════════ PHASE 1: PREPARATION -->
+  <div id="phase1" class="phase phase-prepare">
+    <div class="phase-header">
+      <span class="phase-badge">Phase 1</span>
+      <span class="phase-title">Preparation</span>
+      <span class="nist-ref">NIST SP 800-61 § 3.1</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">Preparation is the most critical phase. An organization that cannot contain ransomware in the first 30 minutes will likely face full-environment encryption. This phase must be completed before an incident occurs.</p>
+
+    <div class="section-header">Roles and Responsibilities</div>
+    <div class="two-col">
+      <div class="card">
+        <h3>Incident Response Team</h3>
+        <ul>
+          <li>IR Lead — declares incidents, owns the response timeline</li>
+          <li>SOC Analyst — triage and initial investigation</li>
+          <li>Network Engineer — firewall changes, VLAN isolation</li>
+          <li>Endpoint Engineer — host isolation and forensics</li>
+          <li>Threat Intelligence Analyst — IOC enrichment</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Executive and Legal</h3>
+        <ul>
+          <li>CISO — escalation authority and ransom decisions</li>
+          <li>Legal Counsel — regulatory notification obligations</li>
+          <li>Communications — internal and external messaging</li>
+          <li>Executive Sponsor — business continuity decisions</li>
+          <li>HR — if insider threat is suspected</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-header">Pre-Incident Requirements</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="chk"></span>Wazuh SIEM deployed with File Integrity Monitoring (FIM) enabled on all endpoints</li>
+        <li><span class="chk"></span>Offline, immutable backups tested within the last 30 days (3-2-1 backup rule enforced)</li>
+        <li><span class="chk"></span>Endpoint Detection and Response (EDR) agent deployed org-wide</li>
+        <li><span class="chk"></span>Network segmentation documented — VLAN map current and accurate</li>
+        <li><span class="chk"></span>Emergency contact list printed and stored offline (phone tree for no-email scenarios)</li>
+        <li><span class="chk"></span>Out-of-band communication channel established (Signal group, secondary email domain)</li>
+        <li><span class="chk"></span>Tabletop exercise completed in last 12 months</li>
+        <li><span class="chk"></span>IR retainer active with a third-party forensics firm</li>
+        <li><span class="chk"></span>Cyber insurance policy reviewed — ransomware coverage confirmed</li>
+        <li><span class="chk"></span>AD tiering model in place — privileged accounts separated from standard users</li>
+        <li><span class="chk"></span>Privileged Access Workstations (PAWs) deployed for admin tasks</li>
+        <li><span class="chk"></span>MFA enforced on VPN, email, and all remote access</li>
+      </ul>
+    </div>
+
+    <div class="section-header">Key Assets and Dependencies</div>
+    <div class="card">
+      <h3>Document Before an Incident</h3>
+      <ul>
+        <li>Crown jewel asset list — systems that, if encrypted, trigger a P1 declaration</li>
+        <li>Domain controller hostnames and IP addresses</li>
+        <li>Backup infrastructure IPs — ensure they are on an isolated VLAN</li>
+        <li>EDR console URL and break-glass credentials (stored in offline vault)</li>
+        <li>Wazuh dashboard URL — 10.0.0.130:443 (or current IP)</li>
+        <li>Firewall management console — emergency block procedures</li>
+      </ul>
+    </div>
+
+    <div class="callout warning">
+      <span class="callout-icon">!</span>
+      <span>If backups are connected to the production network, ransomware will encrypt them. Verify backup isolation before an incident occurs — not during one.</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ PHASE 2: DETECTION -->
+  <div id="phase2" class="phase phase-detect">
+    <div class="phase-header">
+      <span class="phase-badge">Phase 2</span>
+      <span class="phase-title">Detection and Analysis</span>
+      <span class="nist-ref">NIST SP 800-61 § 3.2</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">Ransomware rarely detonates immediately after initial access. Attackers typically spend 1 to 14 days in the environment performing reconnaissance and credential harvesting before executing the payload. Early detection during the pre-encryption phase is the highest-value opportunity to prevent catastrophic impact.</p>
+
+    <div class="section-header">Wazuh SIEM — Primary Detection Rules</div>
+
+    <div class="callout info">
+      <span class="callout-icon">i</span>
+      <span>Monitor these rules in Wazuh at <strong>10.0.0.130</strong>. Navigate to Security Events and filter by Rule ID or Group to focus on ransomware-related activity.</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Rule ID</th>
+            <th>Group / Module</th>
+            <th>Alert Description</th>
+            <th>Severity</th>
+            <th>Ransomware Relevance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rule-id">550</td>
+            <td>syscheck / FIM</td>
+            <td>Integrity checksum changed on monitored file</td>
+            <td class="sev-high">High (7)</td>
+            <td>Mass checksum changes signal active encryption</td>
+          </tr>
+          <tr>
+            <td class="rule-id">553</td>
+            <td>syscheck / FIM</td>
+            <td>File added to monitored directory</td>
+            <td class="sev-medium">Medium (5)</td>
+            <td>Ransom note files dropped (README.txt, DECRYPT.html)</td>
+          </tr>
+          <tr>
+            <td class="rule-id">554</td>
+            <td>syscheck / FIM</td>
+            <td>File deleted from monitored directory</td>
+            <td class="sev-medium">Medium (5)</td>
+            <td>Original files deleted after encryption (double-extension pattern)</td>
+          </tr>
+          <tr>
+            <td class="rule-id">87103</td>
+            <td>syscheck / FIM</td>
+            <td>Possible ransomware — mass file modification detected</td>
+            <td class="sev-critical">Critical (12)</td>
+            <td>Composite rule: high-volume FIM events in short window</td>
+          </tr>
+          <tr>
+            <td class="rule-id">87105</td>
+            <td>syscheck / FIM</td>
+            <td>Suspicious file extension change detected (.locked, .enc, .crypt)</td>
+            <td class="sev-critical">Critical (12)</td>
+            <td>Direct indicator of encryption in progress</td>
+          </tr>
+          <tr>
+            <td class="rule-id">5402</td>
+            <td>ossec / sudo</td>
+            <td>Successful sudo to root</td>
+            <td class="sev-high">High (8)</td>
+            <td>Privilege escalation stage prior to encryption</td>
+          </tr>
+          <tr>
+            <td class="rule-id">60112</td>
+            <td>ossec / auditd</td>
+            <td>Multiple file permission changes in short period</td>
+            <td class="sev-high">High (8)</td>
+            <td>Ransomware modifying ACLs before encrypting files</td>
+          </tr>
+          <tr>
+            <td class="rule-id">61603</td>
+            <td>windows / defender</td>
+            <td>Windows Defender malware detection event</td>
+            <td class="sev-critical">Critical (12)</td>
+            <td>AV detection of ransomware payload or dropper</td>
+          </tr>
+          <tr>
+            <td class="rule-id">61604</td>
+            <td>windows / defender</td>
+            <td>Windows Defender real-time protection disabled</td>
+            <td class="sev-critical">Critical (12)</td>
+            <td>T1562 — Impair Defenses, common pre-encryption step</td>
+          </tr>
+          <tr>
+            <td class="rule-id">92200</td>
+            <td>sysmon</td>
+            <td>Suspicious process creation — LOLBin or encoded payload</td>
+            <td class="sev-high">High (9)</td>
+            <td>PowerShell, wscript, certutil used to execute payloads</td>
+          </tr>
+          <tr>
+            <td class="rule-id">92656</td>
+            <td>windows / eventlog</td>
+            <td>Windows Security event log cleared</td>
+            <td class="sev-critical">Critical (12)</td>
+            <td>T1070.001 — log clearing before encryption detonation</td>
+          </tr>
+          <tr>
+            <td class="rule-id">40111</td>
+            <td>ossec / ids</td>
+            <td>Multiple authentication failures followed by success</td>
+            <td class="sev-high">High (10)</td>
+            <td>Brute force / credential spray leading to initial access</td>
+          </tr>
+          <tr>
+            <td class="rule-id">31168</td>
+            <td>windows / eventlog</td>
+            <td>VSS shadow copy deleted (vssadmin delete shadows)</td>
+            <td class="sev-critical">Critical (15)</td>
+            <td>T1490 — Inhibit System Recovery, nearly always ransomware</td>
+          </tr>
+          <tr>
+            <td class="rule-id">100200</td>
+            <td>custom / local_rules</td>
+            <td>Outbound connection to known ransomware C2 IP</td>
+            <td class="sev-critical">Critical (13)</td>
+            <td>C2 beacon detected — attacker has active foothold</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-header">Detection Checklist</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="chk"></span>Identify the first alert timestamp — establish Patient Zero and initial compromise window</li>
+        <li><span class="chk"></span>Determine scope: how many hosts show FIM rule 550/553/554 activity?</li>
+        <li><span class="chk"></span>Check for VSS deletion (Rule 31168) — if present, assume no Windows Shadow Copy recovery</li>
+        <li><span class="chk"></span>Identify the encryption file extension (.locked, .enc, .crypt, .ryk, .conti, etc.)</li>
+        <li><span class="chk"></span>Search for ransom note filenames across file shares</li>
+        <li><span class="chk"></span>Check for outbound connections to unknown IPs from affected hosts</li>
+        <li><span class="chk"></span>Determine if Domain Controllers are affected — if yes, escalate to P1 immediately</li>
+        <li><span class="chk"></span>Identify the likely initial access vector: phishing email, exposed RDP, vulnerable VPN</li>
+        <li><span class="chk"></span>Assign a severity rating (P1 Critical / P2 High / P3 Medium) and document</li>
+        <li><span class="chk"></span>Notify CISO and legal within SLA (default: P1 = 15 minutes)</li>
+      </ul>
+    </div>
+
+    <div class="section-header">Wazuh Query Commands</div>
+    <div class="code-label">Search FIM events on Wazuh Manager</div>
+    <div class="code-block detect">
+      <pre><span class="comment"># SSH into Wazuh Manager</span>
+<span class="cmd">ssh</span> wazuh-user@10.0.0.130
+
+<span class="comment"># Search recent FIM alerts (rule 550, 553, 554)</span>
+<span class="cmd">grep</span> <span class="flag">-E</span> <span class="string">"Rule: (550|553|554|87103|87105|31168)"</span> /var/ossec/logs/alerts/alerts.log | <span class="cmd">tail</span> <span class="flag">-100</span>
+
+<span class="comment"># Search for ransomware-related file extensions in FIM events</span>
+<span class="cmd">grep</span> <span class="flag">-i</span> <span class="string">"\.(locked|enc|crypt|ryk|conti|hive|pay2key)"</span> /var/ossec/logs/alerts/alerts.log
+
+<span class="comment"># Count FIM events per agent in last hour (mass encryption indicator)</span>
+<span class="cmd">grep</span> <span class="string">"syscheck"</span> /var/ossec/logs/alerts/alerts.log | <span class="cmd">awk</span> <span class="string">'{print $8}'</span> | <span class="cmd">sort</span> | <span class="cmd">uniq</span> <span class="flag">-c</span> | <span class="cmd">sort</span> <span class="flag">-rn</span> | <span class="cmd">head</span> <span class="flag">-20</span>
+
+<span class="comment"># Check for VSS deletion events (T1490)</span>
+<span class="cmd">grep</span> <span class="string">"vssadmin\|wmic.*shadowcopy"</span> /var/ossec/logs/alerts/alerts.log <span class="flag">-i</span></pre>
+    </div>
+
+    <div class="callout critical">
+      <span class="callout-icon">!</span>
+      <span><strong>Do not reboot affected systems</strong> during detection. Memory forensics may capture encryption keys, running processes, and attacker tooling. Capture volatile data first.</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ PHASE 3: CONTAINMENT -->
+  <div id="phase3" class="phase phase-contain">
+    <div class="phase-header">
+      <span class="phase-badge">Phase 3</span>
+      <span class="phase-title">Containment</span>
+      <span class="nist-ref">NIST SP 800-61 § 3.3</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">Speed is critical. Every minute of dwell time allows ransomware to encrypt additional hosts and spread laterally. Containment must balance the need for speed against the risk of tipping off the attacker and causing them to accelerate or destroy evidence.</p>
+
+    <div class="callout warning">
+      <span class="callout-icon">!</span>
+      <span>Before isolating hosts, capture volatile memory and running process lists if time allows. Premature shutdown destroys forensic evidence and may not stop encryption on other hosts already seeded.</span>
+    </div>
+
+    <div class="section-header">Step 1 — Capture Volatile Data (Before Isolation)</div>
+    <div class="code-label">Linux — Capture memory and process state</div>
+    <div class="code-block">
+      <pre><span class="comment"># Record running processes with full command lines</span>
+<span class="cmd">ps</span> <span class="flag">auxf</span> > /tmp/processes_$(hostname)_$(date +%Y%m%d_%H%M%S).txt
+
+<span class="comment"># List all open network connections</span>
+<span class="cmd">ss</span> <span class="flag">-tulnp</span> > /tmp/netconn_$(hostname)_$(date +%Y%m%d_%H%M%S).txt
+
+<span class="comment"># Record active users</span>
+<span class="cmd">w</span> > /tmp/users_$(hostname)_$(date +%Y%m%d_%H%M%S).txt
+
+<span class="comment"># Hash suspicious binaries before anything changes</span>
+<span class="cmd">sha256sum</span> /path/to/suspicious/binary > /tmp/hashes.txt
+
+<span class="comment"># Copy volatile artifacts to IR jump box before isolation</span>
+<span class="cmd">scp</span> /tmp/*_$(hostname)_*.txt ir-analyst@IR-JUMPBOX:/evidence/$(hostname)/</pre>
+    </div>
+
+    <div class="code-label">Windows (PowerShell) — Capture volatile data</div>
+    <div class="code-block">
+      <pre><span class="comment"># Get all running processes with paths</span>
+<span class="cmd">Get-Process</span> | <span class="cmd">Select-Object</span> Name, Id, Path, StartTime | <span class="cmd">Export-Csv</span> <span class="flag">C:\IR\processes.csv</span>
+
+<span class="comment"># Active network connections</span>
+<span class="cmd">Get-NetTCPConnection</span> | <span class="cmd">Where-Object</span> State <span class="flag">-eq</span> <span class="string">'Established'</span> | <span class="cmd">Export-Csv</span> <span class="flag">C:\IR\netconn.csv</span>
+
+<span class="comment"># Scheduled tasks (common ransomware persistence)</span>
+<span class="cmd">Get-ScheduledTask</span> | <span class="cmd">Where-Object</span> State <span class="flag">-ne</span> <span class="string">'Disabled'</span> | <span class="cmd">Export-Csv</span> <span class="flag">C:\IR\tasks.csv</span>
+
+<span class="comment"># Autorun entries</span>
+<span class="cmd">Get-ItemProperty</span> <span class="flag">HKLM:\Software\Microsoft\Windows\CurrentVersion\Run</span></pre>
+    </div>
+
+    <div class="section-header">Step 2 — Isolate Infected Hosts</div>
+    <div class="code-label">Linux — Network isolation via iptables</div>
+    <div class="code-block">
+      <pre><span class="comment"># Allow only SSH from IR jump box, block everything else</span>
+<span class="cmd">iptables</span> <span class="flag">-I INPUT 1 -s</span> IR_JUMPBOX_IP <span class="flag">-j</span> ACCEPT
+<span class="cmd">iptables</span> <span class="flag">-I OUTPUT 1 -d</span> IR_JUMPBOX_IP <span class="flag">-j</span> ACCEPT
+<span class="cmd">iptables</span> <span class="flag">-A INPUT -j</span> DROP
+<span class="cmd">iptables</span> <span class="flag">-A OUTPUT -j</span> DROP
+
+<span class="comment"># Confirm rules applied</span>
+<span class="cmd">iptables</span> <span class="flag">-L -n -v</span>
+
+<span class="comment"># Save rules to survive reboot if needed</span>
+<span class="cmd">iptables-save</span> > /etc/iptables/rules.v4</pre>
+    </div>
+
+    <div class="code-label">Windows (PowerShell) — Block all traffic except IR team</div>
+    <div class="code-block">
+      <pre><span class="comment"># Block all inbound traffic</span>
+<span class="cmd">New-NetFirewallRule</span> <span class="flag">-DisplayName</span> <span class="string">"IR-Block-Inbound"</span> <span class="flag">-Direction</span> Inbound <span class="flag">-Action</span> Block
+
+<span class="comment"># Block all outbound traffic</span>
+<span class="cmd">New-NetFirewallRule</span> <span class="flag">-DisplayName</span> <span class="string">"IR-Block-Outbound"</span> <span class="flag">-Direction</span> Outbound <span class="flag">-Action</span> Block
+
+<span class="comment"># Allow IR team access only</span>
+<span class="cmd">New-NetFirewallRule</span> <span class="flag">-DisplayName</span> <span class="string">"IR-Allow-SSH"</span> <span class="flag">-Direction</span> Inbound <span class="flag">-Protocol</span> TCP <span class="flag">-LocalPort</span> 22 <span class="flag">-RemoteAddress</span> IR_JUMPBOX_IP <span class="flag">-Action</span> Allow</pre>
+    </div>
+
+    <div class="section-header">Step 3 — Block Lateral Movement at the Network Layer</div>
+    <div class="code-label">Firewall / network-level containment</div>
+    <div class="code-block">
+      <pre><span class="comment"># Block SMB (445) across VLANs — primary ransomware spread vector</span>
+<span class="cmd">iptables</span> <span class="flag">-A FORWARD -p</span> tcp <span class="flag">--dport</span> 445 <span class="flag">-j</span> DROP
+<span class="cmd">iptables</span> <span class="flag">-A FORWARD -p</span> tcp <span class="flag">--dport</span> 139 <span class="flag">-j</span> DROP
+
+<span class="comment"># Block RDP lateral movement (3389)</span>
+<span class="cmd">iptables</span> <span class="flag">-A FORWARD -p</span> tcp <span class="flag">--dport</span> 3389 <span class="flag">-j</span> DROP
+
+<span class="comment"># Block WMI and RPC (lateral movement via admin shares)</span>
+<span class="cmd">iptables</span> <span class="flag">-A FORWARD -p</span> tcp <span class="flag">--dport</span> 135 <span class="flag">-j</span> DROP
+
+<span class="comment"># If using pfSense or similar — block infected subnet from reaching backup VLAN</span>
+<span class="comment"># Rule: Source: INFECTED_VLAN / Dest: BACKUP_VLAN / Action: Reject</span></pre>
+    </div>
+
+    <div class="section-header">Step 4 — Kill Malicious Processes</div>
+    <div class="code-label">Linux — Kill ransomware process</div>
+    <div class="code-block">
+      <pre><span class="comment"># Find suspicious processes consuming high CPU (encryption is CPU-intensive)</span>
+<span class="cmd">ps</span> <span class="flag">aux --sort=-%cpu</span> | <span class="cmd">head</span> <span class="flag">-20</span>
+
+<span class="comment"># Identify the PID of the suspicious process</span>
+<span class="cmd">pgrep</span> <span class="flag">-a</span> suspicious_process_name
+
+<span class="comment"># Kill the process (do NOT use -9 unless necessary — may corrupt forensic state)</span>
+<span class="cmd">kill</span> <span class="flag">-15</span> PID
+
+<span class="comment"># If process respawns, check for persistence mechanisms</span>
+<span class="cmd">crontab</span> <span class="flag">-l</span>
+<span class="cmd">systemctl</span> list-units <span class="flag">--type=service --state=running</span>
+<span class="cmd">ls</span> <span class="flag">-la</span> /etc/cron.d/ /etc/systemd/system/</pre>
+    </div>
+
+    <div class="code-label">Windows (PowerShell) — Kill ransomware process</div>
+    <div class="code-block">
+      <pre><span class="comment"># Find high-CPU processes</span>
+<span class="cmd">Get-Process</span> | <span class="cmd">Sort-Object</span> CPU <span class="flag">-Descending</span> | <span class="cmd">Select-Object</span> <span class="flag">-First</span> 10
+
+<span class="comment"># Kill suspicious process by name</span>
+<span class="cmd">Stop-Process</span> <span class="flag">-Name</span> <span class="string">"malicious_process"</span> <span class="flag">-Force</span>
+
+<span class="comment"># Kill by PID</span>
+<span class="cmd">Stop-Process</span> <span class="flag">-Id</span> PID <span class="flag">-Force</span>
+
+<span class="comment"># Disable malicious scheduled task</span>
+<span class="cmd">Disable-ScheduledTask</span> <span class="flag">-TaskName</span> <span class="string">"SuspiciousTaskName"</span>
+
+<span class="comment"># Remove malicious service</span>
+<span class="cmd">Stop-Service</span> <span class="flag">-Name</span> <span class="string">"MaliciousService"</span>
+<span class="cmd">sc.exe</span> delete <span class="string">"MaliciousService"</span></pre>
+    </div>
+
+    <div class="section-header">Containment Checklist</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="chk"></span>Volatile data captured from all confirmed infected hosts</li>
+        <li><span class="chk"></span>Infected hosts isolated from network (firewall rules applied or physical cable pulled)</li>
+        <li><span class="chk"></span>SMB (445), RDP (3389), and WMI (135) blocked at inter-VLAN firewall</li>
+        <li><span class="chk"></span>Domain Controllers assessed — if not encrypted, isolate them proactively</li>
+        <li><span class="chk"></span>Backup systems confirmed unreachable from infected VLAN</li>
+        <li><span class="chk"></span>VPN access suspended for all users pending investigation</li>
+        <li><span class="chk"></span>Compromised accounts disabled in Active Directory</li>
+        <li><span class="chk"></span>Malicious processes terminated on all confirmed hosts</li>
+        <li><span class="chk"></span>All actions timestamped in incident timeline log</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ PHASE 4: ERADICATION -->
+  <div id="phase4" class="phase phase-eradicate">
+    <div class="phase-header">
+      <span class="phase-badge">Phase 4</span>
+      <span class="phase-title">Eradication</span>
+      <span class="nist-ref">NIST SP 800-61 § 3.3</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">Eradication means removing every trace of the attacker from the environment — not just the ransomware binary. If attacker access paths (persistence, backdoors, compromised credentials) are not fully eliminated, the adversary will re-enter and re-encrypt within days.</p>
+
+    <div class="section-header">Identify and Remove Persistence Mechanisms</div>
+
+    <div class="code-label">Linux — Check common persistence locations</div>
+    <div class="code-block eradicate">
+      <pre><span class="comment"># Check all crontabs (root and users)</span>
+<span class="cmd">crontab</span> <span class="flag">-l</span>
+<span class="cmd">cat</span> /etc/crontab
+<span class="cmd">ls</span> <span class="flag">-la</span> /etc/cron.d/ /etc/cron.hourly/ /etc/cron.daily/
+
+<span class="comment"># Check for malicious systemd services</span>
+<span class="cmd">systemctl</span> list-units <span class="flag">--type=service</span>
+<span class="cmd">ls</span> <span class="flag">-la</span> /etc/systemd/system/ | <span class="cmd">grep</span> <span class="flag">-v</span> <span class="string">"^total"</span>
+
+<span class="comment"># Check bash profile modifications (common for backdoor persistence)</span>
+<span class="cmd">cat</span> ~/.bashrc ~/.bash_profile /etc/profile /etc/profile.d/*
+
+<span class="comment"># Find SUID/SGID binaries that shouldn't exist</span>
+<span class="cmd">find</span> / <span class="flag">-perm /4000 -o -perm /2000</span> 2>/dev/null | <span class="cmd">grep</span> <span class="flag">-v</span> /usr
+
+<span class="comment"># Check for new users added during compromise window</span>
+<span class="cmd">awk</span> <span class="flag">-F:</span> <span class="string">'$3 >= 1000'</span> /etc/passwd
+<span class="cmd">lastlog</span> | <span class="cmd">grep</span> <span class="flag">-v</span> <span class="string">"Never logged in"</span></pre>
+    </div>
+
+    <div class="code-label">Windows (PowerShell) — Remove persistence</div>
+    <div class="code-block eradicate">
+      <pre><span class="comment"># Check Run keys for malicious autoruns</span>
+<span class="cmd">Get-ItemProperty</span> <span class="flag">HKLM:\Software\Microsoft\Windows\CurrentVersion\Run</span>
+<span class="cmd">Get-ItemProperty</span> <span class="flag">HKCU:\Software\Microsoft\Windows\CurrentVersion\Run</span>
+
+<span class="comment"># Remove a malicious registry autorun entry</span>
+<span class="cmd">Remove-ItemProperty</span> <span class="flag">-Path</span> <span class="string">"HKLM:\Software\Microsoft\Windows\CurrentVersion\Run"</span> <span class="flag">-Name</span> <span class="string">"MaliciousEntry"</span>
+
+<span class="comment"># Delete malicious scheduled tasks</span>
+<span class="cmd">Get-ScheduledTask</span> | <span class="cmd">Where-Object</span> TaskName <span class="flag">-like</span> <span class="string">"*suspicious*"</span> | <span class="cmd">Unregister-ScheduledTask</span> <span class="flag">-Confirm:$false</span>
+
+<span class="comment"># Remove malicious WMI subscriptions (advanced persistence)</span>
+<span class="cmd">Get-WMIObject</span> <span class="flag">-Namespace</span> root/subscription <span class="flag">-Class</span> __EventFilter | <span class="cmd">Remove-WmiObject</span>
+<span class="cmd">Get-WMIObject</span> <span class="flag">-Namespace</span> root/subscription <span class="flag">-Class</span> __EventConsumer | <span class="cmd">Remove-WmiObject</span>
+<span class="cmd">Get-WMIObject</span> <span class="flag">-Namespace</span> root/subscription <span class="flag">-Class</span> __FilterToConsumerBinding | <span class="cmd">Remove-WmiObject</span></pre>
+    </div>
+
+    <div class="section-header">Credential Reset — All Privileged Accounts</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="chk"></span>Reset KRBTGT account password twice (48 hours apart for Kerberos ticket invalidation)</li>
+        <li><span class="chk"></span>Reset all Domain Admin and Enterprise Admin passwords</li>
+        <li><span class="chk"></span>Reset all service account passwords</li>
+        <li><span class="chk"></span>Revoke all active VPN sessions and require re-authentication</li>
+        <li><span class="chk"></span>Invalidate all OAuth tokens and API keys used on affected systems</li>
+        <li><span class="chk"></span>Reset local Administrator passwords on all endpoints (use LAPS or equivalent)</li>
+        <li><span class="chk"></span>Disable or delete accounts created by the attacker during compromise window</li>
+      </ul>
+    </div>
+
+    <div class="section-header">Malware Removal and System Validation</div>
+    <div class="code-label">Scan for known ransomware IOCs</div>
+    <div class="code-block eradicate">
+      <pre><span class="comment"># Search for known ransomware binary names and extensions</span>
+<span class="cmd">find</span> / <span class="flag">-name</span> <span class="string">"*.locked"</span> <span class="flag">-o -name</span> <span class="string">"*.enc"</span> <span class="flag">-o -name</span> <span class="string">"README_DECRYPT*"</span> 2>/dev/null
+
+<span class="comment"># Search for recently modified executables (last 7 days)</span>
+<span class="cmd">find</span> /usr /opt /tmp /var <span class="flag">-mtime -7 -type f -executable</span> 2>/dev/null
+
+<span class="comment"># Hash all suspicious files and cross-reference against VirusTotal</span>
+<span class="cmd">sha256sum</span> /path/to/suspicious_file
+
+<span class="comment"># Run ClamAV scan if available</span>
+<span class="cmd">clamscan</span> <span class="flag">-r --infected --remove</span> /home /opt /tmp
+
+<span class="comment"># Check for unusual listening ports post-containment</span>
+<span class="cmd">ss</span> <span class="flag">-tulnp</span> | <span class="cmd">grep</span> <span class="flag">-v</span> <span class="string">"LISTEN.*127.0.0"</span></pre>
+    </div>
+
+    <div class="callout critical">
+      <span class="callout-icon">!</span>
+      <span><strong>Do not rebuild systems from the same base image</strong> if the attack vector was a vulnerability in that image. Patch first, then reimage. Validate the clean image before deploying.</span>
+    </div>
+
+    <div class="section-header">Eradication Checklist</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="chk"></span>All malware binaries identified, hashed for evidence, and removed</li>
+        <li><span class="chk"></span>All persistence mechanisms removed (registry, cron, services, WMI subscriptions)</li>
+        <li><span class="chk"></span>All compromised accounts disabled or reset</li>
+        <li><span class="chk"></span>KRBTGT reset twice if AD was accessed by attacker</li>
+        <li><span class="chk"></span>Clean system images validated against known-good baseline</li>
+        <li><span class="chk"></span>Patch or remove the initial access vulnerability (CVE reference if known)</li>
+        <li><span class="chk"></span>IOC list compiled: file hashes, IPs, domains, process names</li>
+        <li><span class="chk"></span>IOCs submitted to threat intelligence platform and EDR blocklist</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ PHASE 5: RECOVERY -->
+  <div id="phase5" class="phase phase-recover">
+    <div class="phase-header">
+      <span class="phase-badge">Phase 5</span>
+      <span class="phase-title">Recovery</span>
+      <span class="nist-ref">NIST SP 800-61 § 3.4</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">Recovery restores affected systems to full operational status. The order of restoration must be driven by business criticality. Do not reconnect systems until they are validated clean — a single reinfected host can re-encrypt the environment.</p>
+
+    <div class="callout warning">
+      <span class="callout-icon">!</span>
+      <span>Confirm with legal and CISO before restoring from backup. Depending on jurisdiction, if data was exfiltrated (double-extortion), regulatory notification timelines may have started. Recovery does not reset the notification clock.</span>
+    </div>
+
+    <div class="section-header">Recovery Priority Order</div>
+    <div class="timeline">
+      <div class="tl-item active">
+        <div class="tl-label">Priority 1 — First 4 hours</div>
+        <div class="tl-text">Core infrastructure: Domain Controllers, DNS, DHCP, authentication services. Without these, nothing else can be restored safely.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Priority 2 — Hours 4 to 12</div>
+        <div class="tl-text">Business-critical systems: ERP, financial systems, production databases. Validate backup integrity before restore.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Priority 3 — Hours 12 to 48</div>
+        <div class="tl-text">Operational systems: email, collaboration tools, file shares. Validate clean state before connecting to network.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-label">Priority 4 — Day 2 to 7</div>
+        <div class="tl-text">Non-critical endpoints and workstations. Reimage from validated clean baseline — do not restore encrypted endpoints from backup unless forensically necessary.</div>
+      </div>
+    </div>
+
+    <div class="section-header">Backup Validation and Restore</div>
+    <div class="code-label">Validate backup integrity before restore</div>
+    <div class="code-block recover">
+      <pre><span class="comment"># Verify backup hash matches pre-incident baseline</span>
+<span class="cmd">sha256sum</span> /backup/path/system_backup.img
+<span class="comment"># Compare output against stored baseline hash in your backup registry</span>
+
+<span class="comment"># Test restore in isolated environment first (not production network)</span>
+<span class="comment"># Mount backup as read-only to inspect for compromise artifacts</span>
+<span class="cmd">mount</span> <span class="flag">-o ro</span> /dev/backup_device /mnt/validate
+
+<span class="comment"># Confirm last clean backup date — check backup logs</span>
+<span class="cmd">cat</span> /var/log/backup/backup.log | <span class="cmd">grep</span> <span class="flag">-i</span> <span class="string">"success"</span> | <span class="cmd">tail</span> <span class="flag">-20</span>
+
+<span class="comment"># Restore specific directory from backup (rsync example)</span>
+<span class="cmd">rsync</span> <span class="flag">-avz --checksum</span> /backup/clean_snapshot/ /restored/target/</pre>
+    </div>
+
+    <div class="section-header">Post-Restore Validation</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="chk"></span>Restored system booted and verified clean by EDR scan before network reconnection</li>
+        <li><span class="chk"></span>Wazuh agent reinstalled and reporting to manager (verify in dashboard)</li>
+        <li><span class="chk"></span>FIM baseline re-established on restored hosts</li>
+        <li><span class="chk"></span>Authentication tested with new credentials (old credentials must not work)</li>
+        <li><span class="chk"></span>Application functionality verified by system owner before declaring operational</li>
+        <li><span class="chk"></span>Enhanced monitoring enabled on restored systems for minimum 30 days</li>
+        <li><span class="chk"></span>Business unit sign-off documented before declaring recovery complete</li>
+      </ul>
+    </div>
+
+    <div class="section-header">Decryption Options (If No Clean Backup)</div>
+    <div class="card">
+      <h3>Evaluate In This Order</h3>
+      <ul>
+        <li>Check No More Ransom (nomoreransom.org) — free decryptors for many known strains</li>
+        <li>Engage IR retainer firm — some have decryption keys from previous cases</li>
+        <li>Check if encryption was incomplete — partially encrypted files may be partially recoverable</li>
+        <li>Evaluate ransom payment only as last resort after legal and CISO sign-off — payment does not guarantee decryption and may violate OFAC regulations if group is sanctioned</li>
+      </ul>
+    </div>
+
+    <div class="callout success">
+      <span class="callout-icon">+</span>
+      <span>Recovery is complete only when all critical systems are operational, enhanced monitoring is active, and the business unit has provided written sign-off. Document the completion timestamp for SLA and insurance reporting.</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ PHASE 6: POST-INCIDENT -->
+  <div id="phase6" class="phase phase-postir">
+    <div class="phase-header">
+      <span class="phase-badge">Phase 6</span>
+      <span class="phase-title">Post-Incident Activity</span>
+      <span class="nist-ref">NIST SP 800-61 § 3.4</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">The post-incident phase turns a painful event into organizational improvement. Every ransomware incident contains lessons that can prevent the next one. Organizations that skip this phase are statistically more likely to be re-attacked within 12 months.</p>
+
+    <div class="section-header">Reporting Requirements</div>
+    <div class="two-col">
+      <div class="card">
+        <h3>Internal Reports</h3>
+        <ul>
+          <li>Executive incident summary (non-technical, 1 page)</li>
+          <li>Technical incident report (full timeline, IOCs, root cause)</li>
+          <li>Business impact assessment (downtime, cost estimate)</li>
+          <li>Control failure analysis (what controls failed and why)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>External Notifications</h3>
+        <ul>
+          <li>Regulatory: HIPAA (60 days), SEC 8-K (4 business days if material), State AG</li>
+          <li>Cyber insurer: notify within policy SLA window</li>
+          <li>Law enforcement: FBI IC3, CISA reporting if critical infrastructure</li>
+          <li>Affected customers/partners if PII or PHI was exfiltrated</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-header">30-Day Post-Incident Hardening Sprint</div>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="chk"></span>Root cause remediated and validated closed</li>
+        <li><span class="chk"></span>All IOCs added to EDR blocklist and SIEM detection rules</li>
+        <li><span class="chk"></span>Wazuh custom rules updated to detect the specific TTP chain observed</li>
+        <li><span class="chk"></span>MFA enforced on any remaining systems that lacked it</li>
+        <li><span class="chk"></span>Backup schedule reviewed — test restore cadence increased if deficient</li>
+        <li><span class="chk"></span>Network segmentation gaps identified and remediation scheduled</li>
+        <li><span class="chk"></span>Phishing simulation run if initial access was email-based</li>
+        <li><span class="chk"></span>Tabletop exercise scheduled using this incident as the scenario</li>
+        <li><span class="chk"></span>Playbook updated with lessons learned from this incident</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ MITRE ATT&CK REFERENCE -->
+  <div id="mitre" class="phase" style="scroll-margin-top:24px;">
+    <div class="phase-header" style="border-bottom-color:#30363d;">
+      <span class="phase-title" style="color:#bc8cff;font-size:1.4rem;">MITRE ATT&amp;CK — Ransomware Technique Reference</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">The following MITRE ATT&amp;CK techniques represent the typical kill chain observed in modern ransomware operations. Mapping attacker behavior to this framework enables faster detection, accurate threat intelligence sharing, and structured defensive coverage analysis.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Technique ID</th>
+            <th>Tactic</th>
+            <th>Name</th>
+            <th>Ransomware Usage</th>
+            <th>Wazuh Detection</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="technique-id">T1566</td>
+            <td>Initial Access</td>
+            <td>Phishing</td>
+            <td>Malicious email attachment or link — most common ransomware entry point</td>
+            <td>Email gateway logs, Rule 40111</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1190</td>
+            <td>Initial Access</td>
+            <td>Exploit Public-Facing Application</td>
+            <td>VPN vulnerabilities (Fortinet, Pulse), Exchange ProxyShell, web app exploits</td>
+            <td>Web logs, IDS alerts, Rule 100200</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1078</td>
+            <td>Initial Access / Persistence</td>
+            <td>Valid Accounts</td>
+            <td>Stolen credentials from prior breach or dark web purchase used for access</td>
+            <td>Rule 40111, Wazuh authentication events</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1059</td>
+            <td>Execution</td>
+            <td>Command and Scripting Interpreter</td>
+            <td>PowerShell, cmd.exe, WScript used to execute payload stages</td>
+            <td>Sysmon Rule 92200, PowerShell logging</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1055</td>
+            <td>Defense Evasion / Privilege Escalation</td>
+            <td>Process Injection</td>
+            <td>Injecting into legitimate processes (svchost, explorer) to evade AV detection</td>
+            <td>Sysmon Rule 92200</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1562</td>
+            <td>Defense Evasion</td>
+            <td>Impair Defenses</td>
+            <td>Disabling Windows Defender, removing AV, clearing event logs before encryption</td>
+            <td>Rule 61604, Rule 92656</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1070</td>
+            <td>Defense Evasion</td>
+            <td>Indicator Removal</td>
+            <td>Clearing Windows event logs, deleting files, modifying timestamps</td>
+            <td>Rule 92656</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1112</td>
+            <td>Defense Evasion</td>
+            <td>Modify Registry</td>
+            <td>Disabling recovery options, adding autorun persistence, modifying security settings</td>
+            <td>Sysmon registry events</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1018</td>
+            <td>Discovery</td>
+            <td>Remote System Discovery</td>
+            <td>Scanning the network for additional targets before mass encryption</td>
+            <td>Network flow analysis, Wazuh IDS</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1083</td>
+            <td>Discovery</td>
+            <td>File and Directory Discovery</td>
+            <td>Enumerating file shares and network drives to maximize encryption impact</td>
+            <td>Sysmon, FIM Rule 550</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1021</td>
+            <td>Lateral Movement</td>
+            <td>Remote Services</td>
+            <td>SMB, RDP, WMI, PsExec used to spread to additional hosts</td>
+            <td>Rule 40111, network firewall logs</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1041</td>
+            <td>Exfiltration</td>
+            <td>Exfiltration Over C2 Channel</td>
+            <td>Double-extortion groups exfiltrate data before encrypting (Cl0p, LockBit, BlackCat)</td>
+            <td>Rule 100200, DLP alerts, DNS logs</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1489</td>
+            <td>Impact</td>
+            <td>Service Stop</td>
+            <td>Stopping database services, backup agents, and AV before encryption begins</td>
+            <td>Wazuh service monitoring</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1490</td>
+            <td>Impact</td>
+            <td>Inhibit System Recovery</td>
+            <td>Deleting VSS shadow copies, disabling Windows Recovery Environment</td>
+            <td>Rule 31168 — highest signal rule for ransomware</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1486</td>
+            <td>Impact</td>
+            <td>Data Encrypted for Impact</td>
+            <td>Core ransomware behavior — encrypting files with asymmetric or symmetric encryption</td>
+            <td>Rules 87103, 87105 — mass FIM triggers</td>
+          </tr>
+          <tr>
+            <td class="technique-id">T1485</td>
+            <td>Impact</td>
+            <td>Data Destruction</td>
+            <td>Some groups destroy backups or wipe systems if ransom is refused</td>
+            <td>Rule 554 (mass deletion), FIM monitoring</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ LESSONS LEARNED TEMPLATE -->
+  <div id="lessons" class="phase" style="scroll-margin-top:24px;">
+    <div class="phase-header" style="border-bottom-color:#30363d;">
+      <span class="phase-title" style="color:#c9d1d9;font-size:1.4rem;">Lessons Learned Template</span>
+    </div>
+
+    <p style="margin-bottom:20px;color:var(--muted);font-size:14px;">Complete this template within 5 business days of incident closure. This document feeds directly into playbook updates, budget justification for security controls, and regulatory compliance evidence.</p>
+
+    <div class="card">
+      <h3>Incident Summary</h3>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Incident ID</label>
+          <div class="field-box">INC-YYYY-XXXX</div>
+        </div>
+        <div class="form-field">
+          <label>Incident Date</label>
+          <div class="field-box">YYYY-MM-DD</div>
+        </div>
+        <div class="form-field">
+          <label>Declared By</label>
+          <div class="field-box">Name / Title</div>
+        </div>
+        <div class="form-field">
+          <label>Incident Closed</label>
+          <div class="field-box">YYYY-MM-DD</div>
+        </div>
+        <div class="form-field">
+          <label>Ransomware Strain (if identified)</label>
+          <div class="field-box">e.g. LockBit 3.0, BlackCat/ALPHV, Cl0p</div>
+        </div>
+        <div class="form-field">
+          <label>Initial Access Vector</label>
+          <div class="field-box">e.g. Phishing email, Exposed RDP, VPN CVE</div>
+        </div>
+        <div class="form-field full">
+          <label>Systems Affected</label>
+          <div class="field-box"># of hosts, # of servers, # of users impacted</div>
+        </div>
+        <div class="form-field full">
+          <label>Data Exfiltrated?</label>
+          <div class="field-box">Yes / No — if yes, describe data type and estimated volume</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Timeline Summary</h3>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Estimated Initial Compromise</label>
+          <div class="field-box">YYYY-MM-DD HH:MM</div>
+        </div>
+        <div class="form-field">
+          <label>First Alert Triggered</label>
+          <div class="field-box">YYYY-MM-DD HH:MM — Wazuh Rule XXXXX</div>
+        </div>
+        <div class="form-field">
+          <label>Encryption Start Time</label>
+          <div class="field-box">YYYY-MM-DD HH:MM (from FIM logs)</div>
+        </div>
+        <div class="form-field">
+          <label>Incident Declared</label>
+          <div class="field-box">YYYY-MM-DD HH:MM</div>
+        </div>
+        <div class="form-field">
+          <label>Containment Achieved</label>
+          <div class="field-box">YYYY-MM-DD HH:MM</div>
+        </div>
+        <div class="form-field">
+          <label>Systems Restored</label>
+          <div class="field-box">YYYY-MM-DD HH:MM</div>
+        </div>
+        <div class="form-field">
+          <label>Dwell Time (Initial Access to Encryption)</label>
+          <div class="field-box">X days, X hours</div>
+        </div>
+        <div class="form-field">
+          <label>Total Downtime</label>
+          <div class="field-box">X hours / X days</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Root Cause Analysis</h3>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Root Cause (5 Whys Summary)</label>
+          <div class="field-box tall">Describe the chain of failures or gaps that allowed the incident to occur. Work backward from the encryption event to the initial access vector.</div>
+        </div>
+        <div class="form-field full">
+          <label>Contributing Factors</label>
+          <div class="field-box tall">List control gaps, process failures, or configuration weaknesses that enabled or accelerated the incident (e.g., MFA not enforced, FIM not enabled, no network segmentation).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>What Went Well</h3>
+      <div class="form-field full" style="margin-bottom:0">
+        <div class="field-box tall">List detection capabilities, response actions, or team behaviors that performed as expected or better. These should be reinforced and documented as best practices.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>What Needs Improvement</h3>
+      <div class="form-field full" style="margin-bottom:0">
+        <div class="field-box tall">List specific gaps in detection, response speed, communication, tooling, or process that hindered containment or recovery. Be specific — vague findings produce vague improvements.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Action Items</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Action Item</th>
+              <th>Owner</th>
+              <th>Due Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td style="color:var(--muted);font-style:italic;">e.g. Enable MFA on all VPN accounts</td>
+              <td style="color:var(--muted);">IT Security</td>
+              <td style="color:var(--muted);">YYYY-MM-DD</td>
+              <td style="color:var(--detect);">Open</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td style="color:var(--muted);font-style:italic;">e.g. Patch CVE-XXXX-XXXX on all VPN appliances</td>
+              <td style="color:var(--muted);">Network Team</td>
+              <td style="color:var(--muted);">YYYY-MM-DD</td>
+              <td style="color:var(--detect);">Open</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td style="color:var(--muted);font-style:italic;">e.g. Isolate backup VLAN from production network</td>
+              <td style="color:var(--muted);">Network Engineer</td>
+              <td style="color:var(--muted);">YYYY-MM-DD</td>
+              <td style="color:var(--detect);">Open</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td style="color:var(--muted);font-style:italic;">e.g. Update Wazuh custom rules to detect VSS deletion</td>
+              <td style="color:var(--muted);">SOC Analyst</td>
+              <td style="color:var(--muted);">YYYY-MM-DD</td>
+              <td style="color:var(--detect);">Open</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td style="color:var(--muted);font-style:italic;">e.g. Schedule ransomware tabletop exercise</td>
+              <td style="color:var(--muted);">CISO</td>
+              <td style="color:var(--muted);">YYYY-MM-DD</td>
+              <td style="color:var(--detect);">Open</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Sign-Off</h3>
+      <div class="form-grid">
+        <div class="form-field">
+          <label>IR Lead</label>
+          <div class="field-box">Name / Date</div>
+        </div>
+        <div class="form-field">
+          <label>CISO</label>
+          <div class="field-box">Name / Date</div>
+        </div>
+        <div class="form-field">
+          <label>Legal Counsel</label>
+          <div class="field-box">Name / Date</div>
+        </div>
+        <div class="form-field">
+          <label>Business Unit Owner</label>
+          <div class="field-box">Name / Date</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end wrapper -->
+
+<footer>
+  <p>Ransomware Incident Response Playbook v1.0 | Based on NIST SP 800-61r2 | MITRE ATT&amp;CK Framework</p>
+  <p style="margin-top:6px;">Author: Brian Pascal | <a href="https://github.com/Bphavin1/ransomware-ir-playbook">github.com/Bphavin1/ransomware-ir-playbook</a> | <a href="https://linkedin.com/in/brianpascalsecurity">linkedin.com/in/brianpascalsecurity</a></p>
+</footer>
+
+</body>
+</html>
